@@ -1,0 +1,8 @@
+C:\K020G1208\CG2 DirectX\DX12\DirectXTex\Bin\Desktop_2019_Win10\x64\Debug\DirectXTex.lib
+C:\K020G1208\CG2 DirectX\DX12\DirectXTex\Bin\Desktop_2019_Win10\x64\Debug\DirectXTex.pdb
+C:\K020G1208\CG2 DirectX\DirectX\DirectXTex\Bin\Desktop_2019_Win10\x64\Debug\DirectXTex.lib
+C:\K020G1208\CG2 DirectX\DirectX\DirectXTex\Bin\Desktop_2019_Win10\x64\Debug\DirectXTex.pdb
+C:\チーム制作\MatchCube\DirectXTex\Bin\Desktop_2019_Win10\x64\Debug\DirectXTex.lib
+C:\チーム制作\MatchCube\DirectXTex\Bin\Desktop_2019_Win10\x64\Debug\DirectXTex.pdb
+C:\チーム制作\MCube\MatchCube\DirectXTex\Bin\Desktop_2019_Win10\x64\Debug\DirectXTex.lib
+C:\チーム制作\MCube\MatchCube\DirectXTex\Bin\Desktop_2019_Win10\x64\Debug\DirectXTex.pdb
