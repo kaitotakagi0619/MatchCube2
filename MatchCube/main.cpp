@@ -549,7 +549,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	}
 
 	wchar_t str[256];
-
+	bool oldkey = false;
+	bool swich = false;
+	int vel = 0;
 	while (true)
 	{
 		// メッセージがある？
@@ -564,26 +566,60 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		}
 		// DirectX毎フレーム処理　ここから
 		devkeyboard->Acquire();
+		devkeyboard->Acquire();
 		BYTE key[256] = {};
 		result = devkeyboard->GetDeviceState(sizeof(key), key);
-
-		if (key[DIK_W] || key[DIK_S] || key[DIK_D] || key[DIK_A])
+		if (swich == true)
 		{
-			if (key[DIK_W])
+			oldkey = true;
+		}
+		else if (swich == false)
+		{
+			oldkey = false;
+		}
+		swich = false;
+		if (key[DIK_SPACE])
+		{
+			swich = true;
+		}
+
+		if (swich == true && oldkey == false)
+		{
+			if (vel == 0)
 			{
-				object[0].position.y -= 5.0f;
+				object[0].position.x += 20.0f;
 			}
-			else if (key[DIK_S])
+			if (vel == 1)
 			{
-				object[0].position.y += 5.0f;
+				object[0].position.x -= 20.0f;
 			}
-			if (key[DIK_D])
+			if (vel == 2)
 			{
-				object[0].position.x += 5.0f;
+				object[0].position.y -= 20.0f;
 			}
-			else if (key[DIK_A])
+			if (vel == 3)
 			{
-				object[0].position.x -= 5.0f;
+				object[0].position.y += 20.0f;
+			}
+		}
+
+		if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_LEFT] || key[DIK_RIGHT])
+		{
+			if (key[DIK_UP])
+			{
+				vel = 3;
+			}
+			else if (key[DIK_DOWN])
+			{
+				vel = 2;
+			}
+			if (key[DIK_LEFT])
+			{
+				vel = 1;
+			}
+			else if (key[DIK_RIGHT])
+			{
+				vel = 0;
 			}
 		}
 
