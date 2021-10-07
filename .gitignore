@@ -12,3 +12,6 @@
 *.ilk
 *.exe
 *.recipe
+*.db-wal
+*.db-shm
+*.opendb

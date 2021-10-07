@@ -457,14 +457,51 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	objectCommon = ObjectCommonCreate(dev.Get(), window_width, window_height);
 
 	ObjectCommonLoadTexture(objectCommon, 0, L"Resource/dog.jpg", dev.Get());
+	ObjectCommonLoadTexture(objectCommon, 1, L"Resource/floor.png", dev.Get());
 
-	Object object;
+	const int o_count = 26;
+	Object object[o_count];
+	for (int i = 0; i < o_count; i++)
+	{
+		if (i == 0)
+		{
+			object[i] = objectCreate(dev.Get(), window_width, window_height, 0);
+		}
+		else
+		{
+			object[i] = objectCreate(dev.Get(), window_width, window_height, 1);
+		}
+		object[i].rotation = { 0,0,0 };
+	}
 
-	object = objectCreate(dev.Get(), window_width, window_height, 0);
 
+	object[0].position = { 0, 0, -20 };
+	object[1].position = { -40, 40, 0 };
+	object[2].position = { -20, 40, 0 };
+	object[3].position = { 0, 40, 0 };
+	object[4].position = { 20, 40, 0 };
+	object[5].position = { 40, 40, 0 };
+	object[6].position = { -40, 20, 0 };
+	object[7].position = { -20, 20, 0 };
+	object[8].position = { 0, 20, 0 };
+	object[9].position = { 20, 20, 0 };
+	object[10].position = { 40, 20, 0 };
+	object[11].position = { -40, 0, 0 };
+	object[12].position = { -20, 0, 0 };
+	object[13].position = { 0, 0, 0 };
+	object[14].position = { 20, 0, 0 };
+	object[15].position = { 40, 0, 0 };
+	object[16].position = { -40, -20, 0 };
+	object[17].position = { -20, -20, 0 };
+	object[18].position = { 0, -20, 0 };
+	object[19].position = { 20, -20, 0 };
+	object[20].position = { 40, -20, 0 };
+	object[21].position = { -40, -40, 0 };
+	object[22].position = {-20, -40, 0 };
+	object[23].position = { 0, -40, 0 };
+	object[24].position = { 20, -40, 0 };
+	object[25].position = { 40, -40, 0 };
 
-	object.rotation = { 0,0,0 };
-	object.position = { 50, -30,0 };
 
 	
 	SpriteCommon spriteCommon;
@@ -494,7 +531,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	sprite[0].position = { 1280 / 2,720 / 2,1000 };
 
 	sprite[1].rotation = 0;
-	sprite[1].position = { 400,200,0 };
+	sprite[1].position = { 4000,2000,0 };
 
 	sprite[0].size.x = 10000.0f;
 	sprite[0].size.y = 10000.0f;
@@ -534,19 +571,19 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			if (key[DIK_W])
 			{
-				object.position.y -= 5.0f;
+				object[0].position.y -= 5.0f;
 			}
 			else if (key[DIK_S])
 			{
-				object.position.y += 5.0f;
+				object[0].position.y += 5.0f;
 			}
 			if (key[DIK_D])
 			{
-				object.position.x += 5.0f;
+				object[0].position.x += 5.0f;
 			}
 			else if (key[DIK_A])
 			{
-				object.position.x -= 5.0f;
+				object[0].position.x -= 5.0f;
 			}
 		}
 
@@ -558,8 +595,10 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			SpriteUpdate(sprite[i], spriteCommon);
 		}
-
-		ObjectUpdate(object, objectCommon);
+		for (int i = 0; i < o_count; i++)
+		{
+			ObjectUpdate(object[i], objectCommon);
+		}
 		//バックバッファの番号を取得（2つなので0番か1番）
 		UINT bbIndex = swapchain->GetCurrentBackBufferIndex();
 
@@ -601,7 +640,10 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		SpriteDraw(sprite[1], cmdList.Get(), spriteCommon, dev.Get());
 		
 		ObjectCommonBeginDraw(objectCommon, cmdList.Get());
-		ObjectDraw(object, cmdList.Get(), objectCommon, dev.Get());
+		for (int i = 0; i < o_count; i++)
+		{
+			ObjectDraw(object[i], cmdList.Get(), objectCommon, dev.Get());
+		}
 		//4.描画コマンドここまで
 
 		//5.リソースバッファを探す
