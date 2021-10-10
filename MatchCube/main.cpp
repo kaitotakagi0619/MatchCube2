@@ -646,14 +646,14 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			object[0].position.y -= 0.5f;
 			//Y軸の角度によって回転が異なるabsは絶対値
-			if (abs(object[0].rotation.y) == 0.0f)
+			if ((object[0].rotation.y) == 0.0f)
 			{
 				object[0].rotation.x -= 2.25f;
 			}
 
-			if (abs(object[0].rotation.y) == 90.0f)
+			if ((object[0].rotation.y) == 90.0f || (object[0].rotation.y) == -270.0f)
 			{
-				object[0].rotation.z -= 2.25f;
+				object[0].rotation.z += 2.25f;
 			}
 
 			if (abs(object[0].rotation.y) == 180.0f)
@@ -661,9 +661,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 				object[0].rotation.x += 2.25f;
 			}
 
-			if (abs(object[0].rotation.y) == 270.0f)
+			if ((object[0].rotation.y) == 270.0f || (object[0].rotation.y) == -90.0f)
 			{
-				object[0].rotation.z += 2.25f;
+				object[0].rotation.z -= 2.25f;
 			}
 
 			timer++;
@@ -676,9 +676,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 				object[0].rotation.x += 2.25f;
 			}
 
-			if (abs(object[0].rotation.y) == 90.0f)
+			if ((object[0].rotation.y) == 90.0f || (object[0].rotation.y) == -270.0f)
 			{
-				object[0].rotation.z += 2.25f;
+				object[0].rotation.z -= 2.25f;
 			}
 
 			if (abs(object[0].rotation.y) == 180.0f)
@@ -686,9 +686,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 				object[0].rotation.x -= 2.25f;
 			}
 
-			if (abs(object[0].rotation.y) == 270.0f)
+			if ((object[0].rotation.y) == 270.0f || (object[0].rotation.y) == -90.0f)
 			{
-				object[0].rotation.z -= 2.25f;
+				object[0].rotation.z += 2.25f;
 			}
 			timer++;
 		}
@@ -1482,9 +1482,9 @@ Object objectCreate(ID3D12Device* dev,int window_width,int window_height , UINT 
 	//拡大行列
 	object.matWorld *= XMMatrixScaling(object.scale.x, object.scale.y, object.scale.z);
 	//回転行列
+	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
 	object.matWorld *= XMMatrixRotationX(XMConvertToRadians(object.rotation.x));
 	object.matWorld *= XMMatrixRotationY(XMConvertToRadians(object.rotation.y));
-	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
 	//平行移動行列
 	object.matWorld *= XMMatrixTranslation(object.position.x, object.position.y, object.position.z);
 
@@ -1570,9 +1570,9 @@ void ObjectUpdate(Object& object, const ObjectCommon& objectCommon)
 	//拡大行列
 	object.matWorld *= XMMatrixScaling(object.scale.x, object.scale.y, object.scale.z);
 	//Z軸回転	//回転行列
+	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
 	object.matWorld *= XMMatrixRotationX(XMConvertToRadians(object.rotation.x));
 	object.matWorld *= XMMatrixRotationY(XMConvertToRadians(object.rotation.y));
-	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
 	//平行移動	//平行移動行列
 	object.matWorld *= XMMatrixTranslation(object.position.x, object.position.y, object.position.z);
 	//定数バッファの転送	//ビューの変換行列
