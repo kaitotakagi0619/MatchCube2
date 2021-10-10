@@ -9,6 +9,7 @@
 #include <d3dx12.h>
 #include <dinput.h>
 #include <d3dcompiler.h>
+#include <stdlib.h>
 
 
 #pragma comment(lib, "d3d12.lib")
@@ -552,6 +553,11 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	bool oldkey = false;
 	bool swich = false;
 	int vel = 0;
+	bool isRight = false;
+	bool isLeft = false;
+	bool isUp = false;
+	bool isDown = false;
+	int timer = 0;
 	while (true)
 	{
 		// メッセージがある？
@@ -587,19 +593,19 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			if (vel == 0)
 			{
-				object[0].position.x += 20.0f;
+				isRight = true;
 			}
 			if (vel == 1)
 			{
-				object[0].position.x -= 20.0f;
+				isLeft = true;
 			}
 			if (vel == 2)
 			{
-				object[0].position.y -= 20.0f;
+				isDown = true;
 			}
 			if (vel == 3)
 			{
-				object[0].position.y += 20.0f;
+				isUp = true;
 			}
 		}
 
@@ -621,6 +627,84 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			{
 				vel = 0;
 			}
+		}
+
+		if (isRight == true)
+		{
+			object[0].position.x += 0.5f;
+			object[0].rotation.y -= 2.25f;
+			timer++;
+		}
+		if (isLeft == true)
+		{
+			object[0].position.x -= 0.5f;
+			object[0].rotation.y += 2.25f;
+			timer++;
+		}
+
+		if (isDown == true)
+		{
+			object[0].position.y -= 0.5f;
+			//Y軸の角度によって回転が異なるabsは絶対値
+			if (abs(object[0].rotation.y) == 0.0f)
+			{
+				object[0].rotation.x -= 2.25f;
+			}
+
+			if (abs(object[0].rotation.y) == 90.0f)
+			{
+				object[0].rotation.z -= 2.25f;
+			}
+
+			if (abs(object[0].rotation.y) == 180.0f)
+			{
+				object[0].rotation.x += 2.25f;
+			}
+
+			if (abs(object[0].rotation.y) == 270.0f)
+			{
+				object[0].rotation.z += 2.25f;
+			}
+
+			timer++;
+		}
+		if (isUp == true)
+		{
+			object[0].position.y += 0.5f;
+			if (abs(object[0].rotation.y) == 0.0f)
+			{
+				object[0].rotation.x += 2.25f;
+			}
+
+			if (abs(object[0].rotation.y) == 90.0f)
+			{
+				object[0].rotation.z += 2.25f;
+			}
+
+			if (abs(object[0].rotation.y) == 180.0f)
+			{
+				object[0].rotation.x -= 2.25f;
+			}
+
+			if (abs(object[0].rotation.y) == 270.0f)
+			{
+				object[0].rotation.z -= 2.25f;
+			}
+			timer++;
+		}
+
+		if (timer > 39)
+		{
+			isRight = false;
+			isLeft = false;
+			isUp = false;
+			isDown = false;
+			timer = 0;
+		}
+
+		if (abs(object[0].rotation.y) == 360.0f)
+		{
+			object[0].rotation.y = 0;
 		}
 
 		sprite[0].position = { sprite[0].position.x, sprite[0].position.y, 0 };
