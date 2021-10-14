@@ -460,11 +460,11 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ObjectCommonLoadTexture(objectCommon, 0, L"Resource/dog.jpg", dev.Get());
 	ObjectCommonLoadTexture(objectCommon, 1, L"Resource/floor.png", dev.Get());
 
-	const int o_count = 26;
+	const int o_count = 27;
 	Object object[o_count];
 	for (int i = 0; i < o_count; i++)
 	{
-		if (i == 0)
+		if (i == 0 || i == 26)
 		{
 			object[i] = objectCreate(dev.Get(), window_width, window_height, 0);
 		}
@@ -472,7 +472,14 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			object[i] = objectCreate(dev.Get(), window_width, window_height, 1);
 		}
-		object[i].rotation = { 0,0,0 };
+		if (i != 26)
+		{
+			object[i].rotation = { 0,0,0 };
+		}
+		else
+		{
+			object[i].rotation = { 45,0,45 };
+		}
 	}
 
 
@@ -502,6 +509,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	object[23].position = { 0, -40, 0 };
 	object[24].position = { 20, -40, 0 };
 	object[25].position = { 40, -40, 0 };
+	object[26].position = { -80, 40, 0 };
 
 
 	
@@ -511,12 +519,12 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	//スプライト共通テクスチャ読み込み
 	SpriteCommonLoadTexture(spriteCommon, 0, L"Resource/dog.jpg", dev.Get());
-	SpriteCommonLoadTexture(spriteCommon, 1, L"Resource/ramen.jpg", dev.Get());
+	SpriteCommonLoadTexture(spriteCommon, 1, L"Resource/title.png", dev.Get());
 	SpriteCommonLoadTexture(spriteCommon, 2, L"Resource/back.jpg", dev.Get());
 	
 
 	//スプライト
-	const int s_count = 2;
+	const int s_count = 3;
 	Sprite sprite[s_count];
 
 	//スプライトの生成
@@ -532,16 +540,16 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	sprite[0].position = { 1280 / 2,720 / 2,1000 };
 
 	sprite[1].rotation = 0;
-	sprite[1].position = { 4000,2000,0 };
+	sprite[1].position = { 1280 / 2,720 / 2,0 };
 
 	sprite[0].size.x = 10000.0f;
 	sprite[0].size.y = 10000.0f;
 
-	sprite[1].size.x = 250.0f;
-	sprite[1].size.y = 250.0f;
+	sprite[1].size.x = 1280.0f;
+	sprite[1].size.y = 720.0f;
 
 	sprite[0].texSize = { 362, 362};
-	sprite[1].texSize = { 4032, 3024 };
+	sprite[1].texSize = { 1024, 512 };
 
 	//頂点バッファに反映
 	for (int i = 0; i < s_count; i++)
@@ -557,7 +565,20 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	bool isLeft = false;
 	bool isUp = false;
 	bool isDown = false;
+	bool isTurn = true;
+	bool plus = false;
+	bool maina = false;
+	int rotaNum = 0;
+	bool rotaPlus;
+	bool rotaMaina;
 	int timer = 0;
+	int SceneNum = 0;
+	bool isLoad = false;
+	int loadTimer = 20;
+	enum Scene
+	{
+		Title, Game, End,
+	};
 	while (true)
 	{
 		// メッセージがある？
@@ -583,131 +604,178 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			oldkey = false;
 		}
+
 		swich = false;
 		if (key[DIK_SPACE])
 		{
 			swich = true;
 		}
 
-		if (swich == true && oldkey == false)
+		if (SceneNum == Title)
 		{
-			if (vel == 0)
+			if (swich == true && oldkey == false)
 			{
-				isRight = true;
+				isLoad = true;
 			}
-			if (vel == 1)
+			if (isLoad == true && loadTimer > 0)
 			{
-				isLeft = true;
+				loadTimer--;
 			}
-			if (vel == 2)
+			if (loadTimer == 0)
 			{
-				isDown = true;
-			}
-			if (vel == 3)
-			{
-				isUp = true;
+				SceneNum = Game;
 			}
 		}
-
-		if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_LEFT] || key[DIK_RIGHT])
+		if (SceneNum == Game)
 		{
-			if (key[DIK_UP])
+			//見本の回転処理
+			object[26].rotation.y += 0.5f;
+
+			if (swich == true && oldkey == false && isTurn == true)
 			{
-				vel = 3;
+				if (vel == 0)
+				{
+					isRight = true;
+				}
+				if (vel == 1)
+				{
+					isLeft = true;
+				}
+				if (vel == 2)
+				{
+					isDown = true;
+				}
+				if (vel == 3)
+				{
+					isUp = true;
+				}
+				isTurn = false;
 			}
-			else if (key[DIK_DOWN])
+
+			if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_LEFT] || key[DIK_RIGHT])
 			{
-				vel = 2;
+				if (key[DIK_UP])
+				{
+					vel = 3;
+				}
+				else if (key[DIK_DOWN])
+				{
+					vel = 2;
+				}
+				if (key[DIK_LEFT])
+				{
+					vel = 1;
+				}
+				else if (key[DIK_RIGHT])
+				{
+					vel = 0;
+				}
 			}
-			if (key[DIK_LEFT])
+
+			if (isRight == true)
 			{
-				vel = 1;
+				object[0].position.x += 0.5f;
+				object[0].rotation.y -= 2.25f;
+				timer++;
 			}
-			else if (key[DIK_RIGHT])
+			if (isLeft == true)
 			{
-				vel = 0;
+				object[0].position.x -= 0.5f;
+				object[0].rotation.y += 2.25f;
+				timer++;
 			}
+
+			if (isDown == true)
+			{
+				object[0].position.y -= 0.5f;
+				//Y軸の角度によって回転が異なるabsは絶対値
+				if (abs(object[0].rotation.y) == 0.0f)
+				{
+					object[0].rotation.x -= 2.25f;
+				}
+
+				if ((object[0].rotation.y) == 90.0f || (object[0].rotation.y) == -270.0f)
+				{
+					object[0].rotation.z += 2.25f;
+				}
+
+				if (abs(object[0].rotation.y) == 180.0f)
+				{
+					object[0].rotation.x += 2.25f;
+				}
+
+				if ((object[0].rotation.y) == 270.0f || (object[0].rotation.y) == -90.0f)
+				{
+					if (object[0].rotation.x == 180.0f || object[0].rotation.x == -180.0f)
+					{
+						object[0].rotation.z -= 2.25f;
+					}
+					if (object[0].rotation.x == 0.0f)
+					{
+						object[0].rotation.z += 2.25f;
+					}
+					if (object[0].rotation.x == 90.0f)
+					{
+						maina == true;
+					}
+				}
+				/*object[0].rotation.x -= 2.25f;*/
+				timer++;
+			}
+			if (isUp == true)
+			{
+				object[0].position.y += 0.5f;
+				if (abs(object[0].rotation.y) == 0.0f)
+				{
+					object[0].rotation.x += 2.25f;
+				}
+
+				if ((object[0].rotation.y) == 90.0f || (object[0].rotation.y) == -270.0f
+					&& object[0].rotation.x == 180.0f || object[0].rotation.x == -180.0f)
+				{
+					object[0].rotation.z -= 2.25f;
+				}
+
+				if (abs(object[0].rotation.y) == 180.0f)
+				{
+					object[0].rotation.x -= 2.25f;
+				}
+
+				if ((object[0].rotation.y) == 270.0f || (object[0].rotation.y) == -90.0f)
+				{
+					object[0].rotation.z += 2.25f;
+				}
+				/*object[0].rotation.x += 2.25f;*/
+				timer++;
+			}
+
+			if (timer > 39)
+			{
+				if (isRight == true || isUp == true)
+				{
+					rotaNum += 1;
+				}
+				if (isLeft == true || isDown == true)
+				{
+					rotaNum -= 1;
+				}
+				isRight = false;
+				isLeft = false;
+				isUp = false;
+				isDown = false;
+				timer = 0;
+				isTurn = true;
+				maina = false;
+				plus = false;
+			}
+
+			if (abs(object[0].rotation.y) == 360.0f)
+			{
+				object[0].rotation.y = 0;
+			}
+
+			sprite[0].position = { sprite[0].position.x, sprite[0].position.y, 0 };
 		}
-
-		if (isRight == true)
-		{
-			object[0].position.x += 0.5f;
-			object[0].rotation.y -= 2.25f;
-			timer++;
-		}
-		if (isLeft == true)
-		{
-			object[0].position.x -= 0.5f;
-			object[0].rotation.y += 2.25f;
-			timer++;
-		}
-
-		if (isDown == true)
-		{
-			object[0].position.y -= 0.5f;
-			//Y軸の角度によって回転が異なるabsは絶対値
-			if ((object[0].rotation.y) == 0.0f)
-			{
-				object[0].rotation.x -= 2.25f;
-			}
-
-			if ((object[0].rotation.y) == 90.0f || (object[0].rotation.y) == -270.0f)
-			{
-				object[0].rotation.z += 2.25f;
-			}
-
-			if (abs(object[0].rotation.y) == 180.0f)
-			{
-				object[0].rotation.x += 2.25f;
-			}
-
-			if ((object[0].rotation.y) == 270.0f || (object[0].rotation.y) == -90.0f)
-			{
-				object[0].rotation.z -= 2.25f;
-			}
-
-			timer++;
-		}
-		if (isUp == true)
-		{
-			object[0].position.y += 0.5f;
-			if (abs(object[0].rotation.y) == 0.0f)
-			{
-				object[0].rotation.x += 2.25f;
-			}
-
-			if ((object[0].rotation.y) == 90.0f || (object[0].rotation.y) == -270.0f)
-			{
-				object[0].rotation.z -= 2.25f;
-			}
-
-			if (abs(object[0].rotation.y) == 180.0f)
-			{
-				object[0].rotation.x -= 2.25f;
-			}
-
-			if ((object[0].rotation.y) == 270.0f || (object[0].rotation.y) == -90.0f)
-			{
-				object[0].rotation.z += 2.25f;
-			}
-			timer++;
-		}
-
-		if (timer > 39)
-		{
-			isRight = false;
-			isLeft = false;
-			isUp = false;
-			isDown = false;
-			timer = 0;
-		}
-
-		if (abs(object[0].rotation.y) == 360.0f)
-		{
-			object[0].rotation.y = 0;
-		}
-
-		sprite[0].position = { sprite[0].position.x, sprite[0].position.y, 0 };
 
 		
 		//スプライトの更新
@@ -756,13 +824,22 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		SpriteCommonBeginDraw(spriteCommon, cmdList.Get());
 		
 		//スプライト描画
-		SpriteDraw(sprite[0], cmdList.Get(), spriteCommon, dev.Get());
-		SpriteDraw(sprite[1], cmdList.Get(), spriteCommon, dev.Get());
-		
-		ObjectCommonBeginDraw(objectCommon, cmdList.Get());
-		for (int i = 0; i < o_count; i++)
+		if (SceneNum == Title)
 		{
-			ObjectDraw(object[i], cmdList.Get(), objectCommon, dev.Get());
+			SpriteDraw(sprite[1], cmdList.Get(), spriteCommon, dev.Get());
+		}
+		
+		if (SceneNum == Game)
+		{
+			SpriteDraw(sprite[0], cmdList.Get(), spriteCommon, dev.Get());
+		}
+		ObjectCommonBeginDraw(objectCommon, cmdList.Get());
+		if (SceneNum == Game)
+		{
+			for (int i = 0; i < o_count; i++)
+			{
+				ObjectDraw(object[i], cmdList.Get(), objectCommon, dev.Get());
+			}
 		}
 		//4.描画コマンドここまで
 
