@@ -10,6 +10,8 @@
 #include <dinput.h>
 #include <d3dcompiler.h>
 #include <stdlib.h>
+#include <fstream>
+#include <sstream>
 
 
 #pragma comment(lib, "d3d12.lib")
@@ -178,6 +180,10 @@ struct ObjectCommon
 	ComPtr<ID3D12Resource> texBuff[objectCount];
 };
 
+//マップ系
+const int map_size = 20;
+const int map_max_x = 5, map_max_y = 5;
+
 //パイプラインの生成（関数）
 PipelineSet Object3dCreateGraphicsPipeline(ID3D12Device* dev);
 
@@ -218,6 +224,18 @@ void ObjectUpdate(Object& object, const ObjectCommon& objectCommon);
 void ObjectCommonLoadTexture(ObjectCommon& objectCommon, UINT texNumber, const wchar_t* filename, ID3D12Device* dev);
 
 void ObjectTransferVertexBuffer(const Object& object, const ObjectCommon& ObjectCommon);
+
+Object objectCreateFlont(ID3D12Device* dev, int window_width, int window_height, UINT texNumber);
+Object objectCreateBack(ID3D12Device* dev, int window_width, int window_height, UINT texNumber);
+Object objectCreateLeft(ID3D12Device* dev, int window_width, int window_height, UINT texNumber);
+Object objectCreateRight(ID3D12Device* dev, int window_width, int window_height, UINT texNumber);
+Object objectCreateUp(ID3D12Device* dev, int window_width, int window_height, UINT texNumber);
+Object objectCreateDown(ID3D12Device* dev, int window_width, int window_height, UINT texNumber);
+
+//マップチップ関係
+void CsvToVector(std::vector<std::vector<int>>& mapData, std::string fName);
+
+int GetChipNum(int x, int y, std::vector<int> map);
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
@@ -453,24 +471,55 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	PipelineSet object3dPipelineSet = Object3dCreateGraphicsPipeline((dev.Get()));
 	PipelineSet spritePipelineSet = SpriteCreateGraphicsPipeline(dev.Get());
 
+	////マップ読み込み
+	//std::vector<std::vector<int>> map;
+	//CsvToVector(map, "Resource/Draw/LEFT.csv");//mapNum=0
+
 	ObjectCommon objectCommon;
 
 	objectCommon = ObjectCommonCreate(dev.Get(), window_width, window_height);
 
 	ObjectCommonLoadTexture(objectCommon, 0, L"Resource/dog.jpg", dev.Get());
 	ObjectCommonLoadTexture(objectCommon, 1, L"Resource/floor.png", dev.Get());
+	ObjectCommonLoadTexture(objectCommon, 2, L"Resource/panel_red.png", dev.Get());
+	ObjectCommonLoadTexture(objectCommon, 3, L"Resource/panel_green.png", dev.Get());
+	ObjectCommonLoadTexture(objectCommon, 4, L"Resource/panel_blue.png", dev.Get());
 
-	const int o_count = 27;
+	const int o_count = 33;
 	Object object[o_count];
 	for (int i = 0; i < o_count; i++)
 	{
 		if (i == 0 || i == 26)
 		{
-			object[i] = objectCreate(dev.Get(), window_width, window_height, 0);
+			object[i] = objectCreate(dev.Get(), window_width, window_height, 1);
 		}
-		else
+		if(i > 0 && i < 26)
 		{
 			object[i] = objectCreate(dev.Get(), window_width, window_height, 1);
+		}
+		if (i == 27)
+		{
+			object[i] = objectCreateFlont(dev.Get(), window_width, window_height, 1);
+		}
+		if (i == 28)
+		{
+			object[i] = objectCreateBack(dev.Get(), window_width, window_height, 1);
+		}
+		if (i == 29)
+		{
+			object[i] = objectCreateLeft(dev.Get(), window_width, window_height, 1);
+		}
+		if (i == 30)
+		{
+			object[i] = objectCreateRight(dev.Get(), window_width, window_height, 1);
+		}
+		if (i == 31)
+		{
+			object[i] = objectCreateUp(dev.Get(), window_width, window_height, 1);
+		}
+		if (i == 32)
+		{
+			object[i] = objectCreateDown(dev.Get(), window_width, window_height, 1);
 		}
 		if (i != 26)
 		{
@@ -510,6 +559,13 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	object[24].position = { 20, -40, 0 };
 	object[25].position = { 40, -40, 0 };
 	object[26].position = { -80, 40, 0 };
+	object[27].position = { 60, 40, -20 };
+	object[28].position = { 60, 40, -20 };
+	object[29].position = { 60, 40, -20 };
+	object[30].position = { 60, 40, -20 };
+	object[31].position = { 60, 40, -20 };
+	object[32].position = { 60, 40, -20 };
+
 
 
 	
@@ -574,6 +630,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	int timer = 0;
 	int SceneNum = 0;
 	bool isLoad = false;
+	bool yMove = true;
 	int loadTimer = 20;
 	enum Scene
 	{
@@ -657,18 +714,22 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 				if (key[DIK_UP])
 				{
 					vel = 3;
+					yMove = false;
 				}
 				else if (key[DIK_DOWN])
 				{
 					vel = 2;
+					yMove = false;
 				}
 				if (key[DIK_LEFT])
 				{
 					vel = 1;
+					yMove = true;
 				}
 				else if (key[DIK_RIGHT])
 				{
 					vel = 0;
+					yMove = true;
 				}
 			}
 
@@ -686,68 +747,36 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			}
 
 			if (isDown == true)
-			{
-				object[0].position.y -= 0.5f;
-				//Y軸の角度によって回転が異なるabsは絶対値
-				if (abs(object[0].rotation.y) == 0.0f)
-				{
-					object[0].rotation.x -= 2.25f;
-				}
+            {
+                //Y軸の角度によって回転が異なるabsは絶対値
+                if (abs(object[0].rotation.y) == 0.0f)
+                {
+                    object[0].rotation.x -= 2.25f;
+					object[0].position.y -= 0.5f;
+                }
 
-				if ((object[0].rotation.y) == 90.0f || (object[0].rotation.y) == -270.0f)
-				{
-					object[0].rotation.z += 2.25f;
-				}
+                if (abs(object[0].rotation.y) == 180.0f)
+                {
+                    object[0].rotation.x += 2.25f;
+					object[0].position.y -= 0.5f;
+                }
+                timer++;
+            }
+            if (isUp == true)
+            {
+                if (abs(object[0].rotation.y) == 0.0f)
+                {
+                    object[0].rotation.x += 2.25f;
+					object[0].position.y += 0.5f;
+                }
 
-				if (abs(object[0].rotation.y) == 180.0f)
-				{
-					object[0].rotation.x += 2.25f;
-				}
-
-				if ((object[0].rotation.y) == 270.0f || (object[0].rotation.y) == -90.0f)
-				{
-					if (object[0].rotation.x == 180.0f || object[0].rotation.x == -180.0f)
-					{
-						object[0].rotation.z -= 2.25f;
-					}
-					if (object[0].rotation.x == 0.0f)
-					{
-						object[0].rotation.z += 2.25f;
-					}
-					if (object[0].rotation.x == 90.0f)
-					{
-						maina == true;
-					}
-				}
-				/*object[0].rotation.x -= 2.25f;*/
-				timer++;
-			}
-			if (isUp == true)
-			{
-				object[0].position.y += 0.5f;
-				if (abs(object[0].rotation.y) == 0.0f)
-				{
-					object[0].rotation.x += 2.25f;
-				}
-
-				if ((object[0].rotation.y) == 90.0f || (object[0].rotation.y) == -270.0f
-					&& object[0].rotation.x == 180.0f || object[0].rotation.x == -180.0f)
-				{
-					object[0].rotation.z -= 2.25f;
-				}
-
-				if (abs(object[0].rotation.y) == 180.0f)
-				{
-					object[0].rotation.x -= 2.25f;
-				}
-
-				if ((object[0].rotation.y) == 270.0f || (object[0].rotation.y) == -90.0f)
-				{
-					object[0].rotation.z += 2.25f;
-				}
-				/*object[0].rotation.x += 2.25f;*/
-				timer++;
-			}
+                if (abs(object[0].rotation.y) == 180.0f)
+                {
+                    object[0].rotation.x -= 2.25f;
+					object[0].position.y += 0.5f;
+                }
+                timer++;
+            }
 
 			if (timer > 39)
 			{
@@ -1576,6 +1605,732 @@ Object objectCreate(ID3D12Device* dev,int window_width,int window_height , UINT 
 	return object;
 }
 
+Object objectCreateFlont(ID3D12Device* dev, int window_width, int window_height, UINT texNumber)
+{
+	HRESULT result = S_FALSE;
+
+	Object object{};
+
+	Vertex vertices[] =
+	{
+		//前
+		{{-object.size.x, -object.size.y, -object.size.z}, {}, {0.0f, 1.0f}},//左下0
+		{{-object.size.x, object.size.y, -object.size.z}, {}, {0.0f, 0.0f}},//左上 1
+		{{object.size.x, -object.size.y, -object.size.z}, {}, {1.0f, 1.0f}},//右下 2
+		{{object.size.x, object.size.y, -object.size.z}, {}, {1.0f, 0.0f}},//右上 3
+	};
+
+	unsigned short indices[] =
+	{
+		0, 1, 2, //三角形1つ目
+		2, 1, 3, //三角形2つ目
+	};
+
+	for (int i = 0; i < _countof(indices) / 3; i++)
+	{// 三角形1つ毎に計算していく
+		// 三角形のインデックスを取り出して、一時的な変数に入れる
+		unsigned short index0 = indices[i * 3 + 0];
+		unsigned short index1 = indices[i * 3 + 1];
+		unsigned short index2 = indices[i * 3 + 2];
+		//三角形を構成する頂点座標をベクトルに代入
+		XMVECTOR p0 = XMLoadFloat3(&vertices[index0].pos);
+		XMVECTOR p1 = XMLoadFloat3(&vertices[index1].pos);
+		XMVECTOR p2 = XMLoadFloat3(&vertices[index2].pos);
+		//p0→piベクトル、p0→p2ベクトルを計算 (ベクトルの減算)
+		XMVECTOR v1 = XMVectorSubtract(p1, p0);
+		XMVECTOR v2 = XMVectorSubtract(p2, p0);
+		// 外積は両面から垂直なベクトル
+		XMVECTOR normal = XMVector3Cross(v1, v2);
+		// 正規化 (長さを1にする)
+		normal = XMVector3Normalize(normal);
+		// 求めた法線を頂点データに代入
+		XMStoreFloat3(&vertices[index0].normal, normal);
+		XMStoreFloat3(&vertices[index1].normal, normal);
+		XMStoreFloat3(&vertices[index2].normal, normal);
+	}
+
+	object.texNumber = texNumber;
+
+	//頂点バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.vertBuff));
+
+	// 頂点バッファへのデータ転送
+	Vertex* vertMap = nullptr;
+	result = object.vertBuff->Map(0, nullptr, (void**)&vertMap);
+	memcpy(vertMap, vertices, sizeof(vertices));
+	object.vertBuff->Unmap(0, nullptr);
+
+	// 頂点バッファビューの作成
+	object.vbView.BufferLocation = object.vertBuff->GetGPUVirtualAddress();
+	object.vbView.SizeInBytes = sizeof(vertices);
+	object.vbView.StrideInBytes = sizeof(vertices[0]);
+
+	//インデックスバッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(indices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.indexBuff));
+
+	//インデックスバッファのデータ転送
+	unsigned short* indexMap = nullptr;
+	result = object.indexBuff->Map(0, nullptr, (void**)&indexMap);
+	memcpy(indexMap, indices, sizeof(indices));
+	object.indexBuff->Unmap(0, nullptr);
+
+	object.ibView.BufferLocation = object.indexBuff->GetGPUVirtualAddress();
+	object.ibView.Format = DXGI_FORMAT_R16_UINT;
+	object.ibView.SizeInBytes = sizeof(indices);
+
+	//定数バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(ConstBufferData) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.constBuff)
+	);
+
+	//定数バッファ転送
+	ConstBufferData* constMap = nullptr;
+	result = object.constBuff->Map(0, nullptr, (void**)&constMap);
+
+	//ワールド行列の更新
+	object.matWorld = XMMatrixIdentity(); //単位行列
+	//拡大行列
+	object.matWorld *= XMMatrixScaling(object.scale.x, object.scale.y, object.scale.z);
+	//回転行列
+	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
+	object.matWorld *= XMMatrixRotationX(XMConvertToRadians(object.rotation.x));
+	object.matWorld *= XMMatrixRotationY(XMConvertToRadians(object.rotation.y));
+	//平行移動行列
+	object.matWorld *= XMMatrixTranslation(object.position.x, object.position.y, object.position.z);
+
+	//ビューの変換行列
+	object.matView = XMMatrixLookAtLH(XMLoadFloat3(&object.eye), XMLoadFloat3(&object.target), XMLoadFloat3(&object.up));
+
+	constMap->mat = object.matWorld * object.matView;
+	constMap->color = object.color;
+
+	object.constBuff->Unmap(0, nullptr);
+
+	return object;
+}
+
+Object objectCreateBack(ID3D12Device* dev, int window_width, int window_height, UINT texNumber)
+{
+	HRESULT result = S_FALSE;
+
+	Object object{};
+
+	Vertex vertices[] =
+	{
+		//後
+		{{object.size.x, -object.size.y, object.size.z}, {}, {0.0f, 0.0f}},//右下
+		{{object.size.x, object.size.y, object.size.z}, {}, {0.0f, 1.0f}},//右上
+		{{-object.size.x, -object.size.y, object.size.z}, {}, {1.0f, 0.0f}},//左下
+		{{-object.size.x, object.size.y, object.size.z}, {}, {1.0f, 1.0f}},//左上
+	};
+
+	unsigned short indices[] =
+	{
+		0, 1, 2, //三角形1つ目
+		2, 1, 3, //三角形2つ目
+	};
+
+	for (int i = 0; i < _countof(indices) / 3; i++)
+	{// 三角形1つ毎に計算していく
+		// 三角形のインデックスを取り出して、一時的な変数に入れる
+		unsigned short index0 = indices[i * 3 + 0];
+		unsigned short index1 = indices[i * 3 + 1];
+		unsigned short index2 = indices[i * 3 + 2];
+		//三角形を構成する頂点座標をベクトルに代入
+		XMVECTOR p0 = XMLoadFloat3(&vertices[index0].pos);
+		XMVECTOR p1 = XMLoadFloat3(&vertices[index1].pos);
+		XMVECTOR p2 = XMLoadFloat3(&vertices[index2].pos);
+		//p0→piベクトル、p0→p2ベクトルを計算 (ベクトルの減算)
+		XMVECTOR v1 = XMVectorSubtract(p1, p0);
+		XMVECTOR v2 = XMVectorSubtract(p2, p0);
+		// 外積は両面から垂直なベクトル
+		XMVECTOR normal = XMVector3Cross(v1, v2);
+		// 正規化 (長さを1にする)
+		normal = XMVector3Normalize(normal);
+		// 求めた法線を頂点データに代入
+		XMStoreFloat3(&vertices[index0].normal, normal);
+		XMStoreFloat3(&vertices[index1].normal, normal);
+		XMStoreFloat3(&vertices[index2].normal, normal);
+	}
+
+	object.texNumber = texNumber;
+
+	//頂点バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.vertBuff));
+
+	// 頂点バッファへのデータ転送
+	Vertex* vertMap = nullptr;
+	result = object.vertBuff->Map(0, nullptr, (void**)&vertMap);
+	memcpy(vertMap, vertices, sizeof(vertices));
+	object.vertBuff->Unmap(0, nullptr);
+
+	// 頂点バッファビューの作成
+	object.vbView.BufferLocation = object.vertBuff->GetGPUVirtualAddress();
+	object.vbView.SizeInBytes = sizeof(vertices);
+	object.vbView.StrideInBytes = sizeof(vertices[0]);
+
+	//インデックスバッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(indices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.indexBuff));
+
+	//インデックスバッファのデータ転送
+	unsigned short* indexMap = nullptr;
+	result = object.indexBuff->Map(0, nullptr, (void**)&indexMap);
+	memcpy(indexMap, indices, sizeof(indices));
+	object.indexBuff->Unmap(0, nullptr);
+
+	object.ibView.BufferLocation = object.indexBuff->GetGPUVirtualAddress();
+	object.ibView.Format = DXGI_FORMAT_R16_UINT;
+	object.ibView.SizeInBytes = sizeof(indices);
+
+	//定数バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(ConstBufferData) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.constBuff)
+	);
+
+	//定数バッファ転送
+	ConstBufferData* constMap = nullptr;
+	result = object.constBuff->Map(0, nullptr, (void**)&constMap);
+
+	//ワールド行列の更新
+	object.matWorld = XMMatrixIdentity(); //単位行列
+	//拡大行列
+	object.matWorld *= XMMatrixScaling(object.scale.x, object.scale.y, object.scale.z);
+	//回転行列
+	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
+	object.matWorld *= XMMatrixRotationX(XMConvertToRadians(object.rotation.x));
+	object.matWorld *= XMMatrixRotationY(XMConvertToRadians(object.rotation.y));
+	//平行移動行列
+	object.matWorld *= XMMatrixTranslation(object.position.x, object.position.y, object.position.z);
+
+	//ビューの変換行列
+	object.matView = XMMatrixLookAtLH(XMLoadFloat3(&object.eye), XMLoadFloat3(&object.target), XMLoadFloat3(&object.up));
+
+	constMap->mat = object.matWorld * object.matView;
+	constMap->color = object.color;
+
+	object.constBuff->Unmap(0, nullptr);
+
+	return object;
+}
+
+Object objectCreateLeft(ID3D12Device* dev, int window_width, int window_height, UINT texNumber)
+{
+	HRESULT result = S_FALSE;
+
+	Object object{};
+
+	Vertex vertices[] =
+	{
+		//左
+		{{-object.size.x, -object.size.y, -object.size.z}, {}, {0.0f, 1.0f}},//左下
+		{{-object.size.x, -object.size.y, object.size.z}, {}, {0.0f, 0.0f}},//左上
+		{{-object.size.x, object.size.y, -object.size.z}, {}, {1.0f, 1.0f}},//右下
+		{{-object.size.x, object.size.y, object.size.z}, {}, {1.0f, 0.0f}},//右上
+	};
+
+	unsigned short indices[] =
+	{
+		0, 1, 2, //三角形1つ目
+		2, 1, 3, //三角形2つ目
+	};
+
+	for (int i = 0; i < _countof(indices) / 3; i++)
+	{// 三角形1つ毎に計算していく
+		// 三角形のインデックスを取り出して、一時的な変数に入れる
+		unsigned short index0 = indices[i * 3 + 0];
+		unsigned short index1 = indices[i * 3 + 1];
+		unsigned short index2 = indices[i * 3 + 2];
+		//三角形を構成する頂点座標をベクトルに代入
+		XMVECTOR p0 = XMLoadFloat3(&vertices[index0].pos);
+		XMVECTOR p1 = XMLoadFloat3(&vertices[index1].pos);
+		XMVECTOR p2 = XMLoadFloat3(&vertices[index2].pos);
+		//p0→piベクトル、p0→p2ベクトルを計算 (ベクトルの減算)
+		XMVECTOR v1 = XMVectorSubtract(p1, p0);
+		XMVECTOR v2 = XMVectorSubtract(p2, p0);
+		// 外積は両面から垂直なベクトル
+		XMVECTOR normal = XMVector3Cross(v1, v2);
+		// 正規化 (長さを1にする)
+		normal = XMVector3Normalize(normal);
+		// 求めた法線を頂点データに代入
+		XMStoreFloat3(&vertices[index0].normal, normal);
+		XMStoreFloat3(&vertices[index1].normal, normal);
+		XMStoreFloat3(&vertices[index2].normal, normal);
+	}
+
+	object.texNumber = texNumber;
+
+	//頂点バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.vertBuff));
+
+	// 頂点バッファへのデータ転送
+	Vertex* vertMap = nullptr;
+	result = object.vertBuff->Map(0, nullptr, (void**)&vertMap);
+	memcpy(vertMap, vertices, sizeof(vertices));
+	object.vertBuff->Unmap(0, nullptr);
+
+	// 頂点バッファビューの作成
+	object.vbView.BufferLocation = object.vertBuff->GetGPUVirtualAddress();
+	object.vbView.SizeInBytes = sizeof(vertices);
+	object.vbView.StrideInBytes = sizeof(vertices[0]);
+
+	//インデックスバッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(indices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.indexBuff));
+
+	//インデックスバッファのデータ転送
+	unsigned short* indexMap = nullptr;
+	result = object.indexBuff->Map(0, nullptr, (void**)&indexMap);
+	memcpy(indexMap, indices, sizeof(indices));
+	object.indexBuff->Unmap(0, nullptr);
+
+	object.ibView.BufferLocation = object.indexBuff->GetGPUVirtualAddress();
+	object.ibView.Format = DXGI_FORMAT_R16_UINT;
+	object.ibView.SizeInBytes = sizeof(indices);
+
+	//定数バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(ConstBufferData) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.constBuff)
+	);
+
+	//定数バッファ転送
+	ConstBufferData* constMap = nullptr;
+	result = object.constBuff->Map(0, nullptr, (void**)&constMap);
+
+	//ワールド行列の更新
+	object.matWorld = XMMatrixIdentity(); //単位行列
+	//拡大行列
+	object.matWorld *= XMMatrixScaling(object.scale.x, object.scale.y, object.scale.z);
+	//回転行列
+	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
+	object.matWorld *= XMMatrixRotationX(XMConvertToRadians(object.rotation.x));
+	object.matWorld *= XMMatrixRotationY(XMConvertToRadians(object.rotation.y));
+	//平行移動行列
+	object.matWorld *= XMMatrixTranslation(object.position.x, object.position.y, object.position.z);
+
+	//ビューの変換行列
+	object.matView = XMMatrixLookAtLH(XMLoadFloat3(&object.eye), XMLoadFloat3(&object.target), XMLoadFloat3(&object.up));
+
+	constMap->mat = object.matWorld * object.matView;
+	constMap->color = object.color;
+
+	object.constBuff->Unmap(0, nullptr);
+
+	return object;
+}
+
+Object objectCreateRight(ID3D12Device* dev, int window_width, int window_height, UINT texNumber)
+{
+	HRESULT result = S_FALSE;
+
+	Object object{};
+
+	Vertex vertices[] =
+	{
+		//右
+		{{object.size.x, object.size.y, -object.size.z}, {}, {0.0f, 1.0f}},//右下
+		{{object.size.x, object.size.y, object.size.z}, {}, {0.0f, 0.0f}},//右上
+		{{object.size.x, -object.size.y, -object.size.z}, {}, {1.0f, 1.0f}},//左下
+		{{object.size.x, -object.size.y, object.size.z}, {}, {1.0f, 0.0f}},//左上
+	};
+
+	unsigned short indices[] =
+	{
+		0, 1, 2, //三角形1つ目
+		2, 1, 3, //三角形2つ目
+	};
+
+	for (int i = 0; i < _countof(indices) / 3; i++)
+	{// 三角形1つ毎に計算していく
+		// 三角形のインデックスを取り出して、一時的な変数に入れる
+		unsigned short index0 = indices[i * 3 + 0];
+		unsigned short index1 = indices[i * 3 + 1];
+		unsigned short index2 = indices[i * 3 + 2];
+		//三角形を構成する頂点座標をベクトルに代入
+		XMVECTOR p0 = XMLoadFloat3(&vertices[index0].pos);
+		XMVECTOR p1 = XMLoadFloat3(&vertices[index1].pos);
+		XMVECTOR p2 = XMLoadFloat3(&vertices[index2].pos);
+		//p0→piベクトル、p0→p2ベクトルを計算 (ベクトルの減算)
+		XMVECTOR v1 = XMVectorSubtract(p1, p0);
+		XMVECTOR v2 = XMVectorSubtract(p2, p0);
+		// 外積は両面から垂直なベクトル
+		XMVECTOR normal = XMVector3Cross(v1, v2);
+		// 正規化 (長さを1にする)
+		normal = XMVector3Normalize(normal);
+		// 求めた法線を頂点データに代入
+		XMStoreFloat3(&vertices[index0].normal, normal);
+		XMStoreFloat3(&vertices[index1].normal, normal);
+		XMStoreFloat3(&vertices[index2].normal, normal);
+	}
+
+	object.texNumber = texNumber;
+
+	//頂点バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.vertBuff));
+
+	// 頂点バッファへのデータ転送
+	Vertex* vertMap = nullptr;
+	result = object.vertBuff->Map(0, nullptr, (void**)&vertMap);
+	memcpy(vertMap, vertices, sizeof(vertices));
+	object.vertBuff->Unmap(0, nullptr);
+
+	// 頂点バッファビューの作成
+	object.vbView.BufferLocation = object.vertBuff->GetGPUVirtualAddress();
+	object.vbView.SizeInBytes = sizeof(vertices);
+	object.vbView.StrideInBytes = sizeof(vertices[0]);
+
+	//インデックスバッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(indices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.indexBuff));
+
+	//インデックスバッファのデータ転送
+	unsigned short* indexMap = nullptr;
+	result = object.indexBuff->Map(0, nullptr, (void**)&indexMap);
+	memcpy(indexMap, indices, sizeof(indices));
+	object.indexBuff->Unmap(0, nullptr);
+
+	object.ibView.BufferLocation = object.indexBuff->GetGPUVirtualAddress();
+	object.ibView.Format = DXGI_FORMAT_R16_UINT;
+	object.ibView.SizeInBytes = sizeof(indices);
+
+	//定数バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(ConstBufferData) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.constBuff)
+	);
+
+	//定数バッファ転送
+	ConstBufferData* constMap = nullptr;
+	result = object.constBuff->Map(0, nullptr, (void**)&constMap);
+
+	//ワールド行列の更新
+	object.matWorld = XMMatrixIdentity(); //単位行列
+	//拡大行列
+	object.matWorld *= XMMatrixScaling(object.scale.x, object.scale.y, object.scale.z);
+	//回転行列
+	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
+	object.matWorld *= XMMatrixRotationX(XMConvertToRadians(object.rotation.x));
+	object.matWorld *= XMMatrixRotationY(XMConvertToRadians(object.rotation.y));
+	//平行移動行列
+	object.matWorld *= XMMatrixTranslation(object.position.x, object.position.y, object.position.z);
+
+	//ビューの変換行列
+	object.matView = XMMatrixLookAtLH(XMLoadFloat3(&object.eye), XMLoadFloat3(&object.target), XMLoadFloat3(&object.up));
+
+	constMap->mat = object.matWorld * object.matView;
+	constMap->color = object.color;
+
+	object.constBuff->Unmap(0, nullptr);
+
+	return object;
+}
+
+Object objectCreateUp(ID3D12Device* dev, int window_width, int window_height, UINT texNumber)
+{
+	HRESULT result = S_FALSE;
+
+	Object object{};
+
+	Vertex vertices[] =
+	{
+		//上
+		{{-object.size.x, object.size.y, -object.size.z}, {}, {0.0f, 1.0f}},//左下
+		{{-object.size.x, object.size.y, object.size.z}, {}, {0.0f, 0.0f}},//左上
+		{{object.size.x, object.size.y, -object.size.z}, {}, {1.0f, 1.0f}},//右下
+		{{object.size.x, object.size.y, object.size.z}, {}, {1.0f, 0.0f}},//右上
+	};
+
+	unsigned short indices[] =
+	{
+		0, 1, 2, //三角形1つ目
+		2, 1, 3, //三角形2つ目
+	};
+
+	for (int i = 0; i < _countof(indices) / 3; i++)
+	{// 三角形1つ毎に計算していく
+		// 三角形のインデックスを取り出して、一時的な変数に入れる
+		unsigned short index0 = indices[i * 3 + 0];
+		unsigned short index1 = indices[i * 3 + 1];
+		unsigned short index2 = indices[i * 3 + 2];
+		//三角形を構成する頂点座標をベクトルに代入
+		XMVECTOR p0 = XMLoadFloat3(&vertices[index0].pos);
+		XMVECTOR p1 = XMLoadFloat3(&vertices[index1].pos);
+		XMVECTOR p2 = XMLoadFloat3(&vertices[index2].pos);
+		//p0→piベクトル、p0→p2ベクトルを計算 (ベクトルの減算)
+		XMVECTOR v1 = XMVectorSubtract(p1, p0);
+		XMVECTOR v2 = XMVectorSubtract(p2, p0);
+		// 外積は両面から垂直なベクトル
+		XMVECTOR normal = XMVector3Cross(v1, v2);
+		// 正規化 (長さを1にする)
+		normal = XMVector3Normalize(normal);
+		// 求めた法線を頂点データに代入
+		XMStoreFloat3(&vertices[index0].normal, normal);
+		XMStoreFloat3(&vertices[index1].normal, normal);
+		XMStoreFloat3(&vertices[index2].normal, normal);
+	}
+
+	object.texNumber = texNumber;
+
+	//頂点バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.vertBuff));
+
+	// 頂点バッファへのデータ転送
+	Vertex* vertMap = nullptr;
+	result = object.vertBuff->Map(0, nullptr, (void**)&vertMap);
+	memcpy(vertMap, vertices, sizeof(vertices));
+	object.vertBuff->Unmap(0, nullptr);
+
+	// 頂点バッファビューの作成
+	object.vbView.BufferLocation = object.vertBuff->GetGPUVirtualAddress();
+	object.vbView.SizeInBytes = sizeof(vertices);
+	object.vbView.StrideInBytes = sizeof(vertices[0]);
+
+	//インデックスバッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(indices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.indexBuff));
+
+	//インデックスバッファのデータ転送
+	unsigned short* indexMap = nullptr;
+	result = object.indexBuff->Map(0, nullptr, (void**)&indexMap);
+	memcpy(indexMap, indices, sizeof(indices));
+	object.indexBuff->Unmap(0, nullptr);
+
+	object.ibView.BufferLocation = object.indexBuff->GetGPUVirtualAddress();
+	object.ibView.Format = DXGI_FORMAT_R16_UINT;
+	object.ibView.SizeInBytes = sizeof(indices);
+
+	//定数バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(ConstBufferData) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.constBuff)
+	);
+
+	//定数バッファ転送
+	ConstBufferData* constMap = nullptr;
+	result = object.constBuff->Map(0, nullptr, (void**)&constMap);
+
+	//ワールド行列の更新
+	object.matWorld = XMMatrixIdentity(); //単位行列
+	//拡大行列
+	object.matWorld *= XMMatrixScaling(object.scale.x, object.scale.y, object.scale.z);
+	//回転行列
+	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
+	object.matWorld *= XMMatrixRotationX(XMConvertToRadians(object.rotation.x));
+	object.matWorld *= XMMatrixRotationY(XMConvertToRadians(object.rotation.y));
+	//平行移動行列
+	object.matWorld *= XMMatrixTranslation(object.position.x, object.position.y, object.position.z);
+
+	//ビューの変換行列
+	object.matView = XMMatrixLookAtLH(XMLoadFloat3(&object.eye), XMLoadFloat3(&object.target), XMLoadFloat3(&object.up));
+
+	constMap->mat = object.matWorld * object.matView;
+	constMap->color = object.color;
+
+	object.constBuff->Unmap(0, nullptr);
+
+	return object;
+}
+
+Object objectCreateDown(ID3D12Device* dev, int window_width, int window_height, UINT texNumber)
+{
+	HRESULT result = S_FALSE;
+
+	Object object{};
+
+	Vertex vertices[] =
+	{
+		//下
+		{{object.size.x, -object.size.y, -object.size.z}, {}, {0.0f, 0.0f}},//右下
+		{{object.size.x, -object.size.y, object.size.z}, {}, {0.0f, 1.0f}},//右上
+		{{-object.size.x, -object.size.y, -object.size.z}, {}, {1.0f, 0.0f}},//左下
+		{{-object.size.x, -object.size.y, object.size.z}, {}, {1.0f, 1.0f}},//左上
+	};
+
+	unsigned short indices[] =
+	{
+		0, 1, 2, //三角形1つ目
+		2, 1, 3, //三角形2つ目
+	};
+
+	for (int i = 0; i < _countof(indices) / 3; i++)
+	{// 三角形1つ毎に計算していく
+		// 三角形のインデックスを取り出して、一時的な変数に入れる
+		unsigned short index0 = indices[i * 3 + 0];
+		unsigned short index1 = indices[i * 3 + 1];
+		unsigned short index2 = indices[i * 3 + 2];
+		//三角形を構成する頂点座標をベクトルに代入
+		XMVECTOR p0 = XMLoadFloat3(&vertices[index0].pos);
+		XMVECTOR p1 = XMLoadFloat3(&vertices[index1].pos);
+		XMVECTOR p2 = XMLoadFloat3(&vertices[index2].pos);
+		//p0→piベクトル、p0→p2ベクトルを計算 (ベクトルの減算)
+		XMVECTOR v1 = XMVectorSubtract(p1, p0);
+		XMVECTOR v2 = XMVectorSubtract(p2, p0);
+		// 外積は両面から垂直なベクトル
+		XMVECTOR normal = XMVector3Cross(v1, v2);
+		// 正規化 (長さを1にする)
+		normal = XMVector3Normalize(normal);
+		// 求めた法線を頂点データに代入
+		XMStoreFloat3(&vertices[index0].normal, normal);
+		XMStoreFloat3(&vertices[index1].normal, normal);
+		XMStoreFloat3(&vertices[index2].normal, normal);
+	}
+
+	object.texNumber = texNumber;
+
+	//頂点バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.vertBuff));
+
+	// 頂点バッファへのデータ転送
+	Vertex* vertMap = nullptr;
+	result = object.vertBuff->Map(0, nullptr, (void**)&vertMap);
+	memcpy(vertMap, vertices, sizeof(vertices));
+	object.vertBuff->Unmap(0, nullptr);
+
+	// 頂点バッファビューの作成
+	object.vbView.BufferLocation = object.vertBuff->GetGPUVirtualAddress();
+	object.vbView.SizeInBytes = sizeof(vertices);
+	object.vbView.StrideInBytes = sizeof(vertices[0]);
+
+	//インデックスバッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(indices)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.indexBuff));
+
+	//インデックスバッファのデータ転送
+	unsigned short* indexMap = nullptr;
+	result = object.indexBuff->Map(0, nullptr, (void**)&indexMap);
+	memcpy(indexMap, indices, sizeof(indices));
+	object.indexBuff->Unmap(0, nullptr);
+
+	object.ibView.BufferLocation = object.indexBuff->GetGPUVirtualAddress();
+	object.ibView.Format = DXGI_FORMAT_R16_UINT;
+	object.ibView.SizeInBytes = sizeof(indices);
+
+	//定数バッファの生成
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(ConstBufferData) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object.constBuff)
+	);
+
+	//定数バッファ転送
+	ConstBufferData* constMap = nullptr;
+	result = object.constBuff->Map(0, nullptr, (void**)&constMap);
+
+	//ワールド行列の更新
+	object.matWorld = XMMatrixIdentity(); //単位行列
+	//拡大行列
+	object.matWorld *= XMMatrixScaling(object.scale.x, object.scale.y, object.scale.z);
+	//回転行列
+	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
+	object.matWorld *= XMMatrixRotationX(XMConvertToRadians(object.rotation.x));
+	object.matWorld *= XMMatrixRotationY(XMConvertToRadians(object.rotation.y));
+	//平行移動行列
+	object.matWorld *= XMMatrixTranslation(object.position.x, object.position.y, object.position.z);
+
+	//ビューの変換行列
+	object.matView = XMMatrixLookAtLH(XMLoadFloat3(&object.eye), XMLoadFloat3(&object.target), XMLoadFloat3(&object.up));
+
+	constMap->mat = object.matWorld * object.matView;
+	constMap->color = object.color;
+
+	object.constBuff->Unmap(0, nullptr);
+
+	return object;
+}
+
 void ObjectCommonBeginDraw(const ObjectCommon& objectCommon,ID3D12GraphicsCommandList* cmdList)
 {
 	//パイプラインとルートシグネチャの設定
@@ -1646,10 +2401,10 @@ void ObjectUpdate(Object& object, const ObjectCommon& objectCommon)
 	object.matWorld = XMMatrixIdentity();
 	//拡大行列
 	object.matWorld *= XMMatrixScaling(object.scale.x, object.scale.y, object.scale.z);
-	//Z軸回転	//回転行列
 	object.matWorld *= XMMatrixRotationZ(XMConvertToRadians(object.rotation.z));
 	object.matWorld *= XMMatrixRotationX(XMConvertToRadians(object.rotation.x));
 	object.matWorld *= XMMatrixRotationY(XMConvertToRadians(object.rotation.y));
+	//Z軸回転	//回転行列
 	//平行移動	//平行移動行列
 	object.matWorld *= XMMatrixTranslation(object.position.x, object.position.y, object.position.z);
 	//定数バッファの転送	//ビューの変換行列
@@ -1773,4 +2528,40 @@ void ObjectTransferVertexBuffer(const Object& object, const ObjectCommon& Object
 	result = object.vertBuff->Map(0, nullptr, (void**)&vertMap);
 	memcpy(vertMap, vertices, sizeof(vertices));
 	object.vertBuff->Unmap(0, nullptr);
+}
+
+//CSVファイル読み込み
+void CsvToVector(std::vector<std::vector<int>>& mapData, std::string fName) {
+	std::ifstream ifs(fName);
+	std::string line;
+	std::vector<int> csv;
+	while (getline(ifs, line))
+	{
+		std::istringstream stream(line);
+		std::string field;
+		std::vector<int> result;
+		while (std::getline(stream, field, ','))
+		{
+			result.push_back(stoi(field));
+		}
+		for (auto i : result)
+		{
+			csv.push_back(i);
+		}
+	}
+	mapData.push_back(csv);
+}
+
+//マップナンバー指定
+int GetChipNum(int x, int y, std::vector<int> map)
+{
+	const int X = x / map_size;
+	const int Y = y / map_size;
+
+	if (X < 0 || X >= map_max_x || Y < 0 || Y >= map_max_y)
+	{
+		return 0;
+	}
+
+	return map[Y * map_max_x + X];
 }
