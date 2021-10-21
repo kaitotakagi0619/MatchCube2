@@ -532,16 +532,16 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	}
 
 
-	object[0].position = { 0, 0, -20 };
+	object[0].position = { 0, 0, 0 };
 	object[1].position = { -40, 40, 0 };
 	object[2].position = { -20, 40, 0 };
 	object[3].position = { 0, 40, 0 };
 	object[4].position = { 20, 40, 0 };
 	object[5].position = { 40, 40, 0 };
 	object[6].position = { -40, 20, 0 };
-	object[7].position = { -20, 20, 0 };
+	//object[7].position = { -20, 20, 0 };
 	object[8].position = { 0, 20, 0 };
-	object[9].position = { 20, 20, 0 };
+	//object[9].position = { 20, 20, 0 };
 	object[10].position = { 40, 20, 0 };
 	object[11].position = { -40, 0, 0 };
 	object[12].position = { -20, 0, 0 };
@@ -549,9 +549,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	object[14].position = { 20, 0, 0 };
 	object[15].position = { 40, 0, 0 };
 	object[16].position = { -40, -20, 0 };
-	object[17].position = { -20, -20, 0 };
+	//object[17].position = { -20, -20, 0 };
 	object[18].position = { 0, -20, 0 };
-	object[19].position = { 20, -20, 0 };
+	//object[19].position = { 20, -20, 0 };
 	object[20].position = { 40, -20, 0 };
 	object[21].position = { -40, -40, 0 };
 	object[22].position = {-20, -40, 0 };
@@ -559,12 +559,12 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	object[24].position = { 20, -40, 0 };
 	object[25].position = { 40, -40, 0 };
 	object[26].position = { -80, 40, 0 };
-	object[27].position = { 60, 40, -20 };
-	object[28].position = { 60, 40, -20 };
-	object[29].position = { 60, 40, -20 };
-	object[30].position = { 60, 40, -20 };
-	object[31].position = { 60, 40, -20 };
-	object[32].position = { 60, 40, -20 };
+	object[27].position = { 0, 0, -20 };
+	object[28].position = { 0, 0, -20 };
+	object[29].position = { 0, 0, -20 };
+	object[30].position = { 0, 0, -20 };
+	object[31].position = { 0, 0, -20 };
+	object[32].position = { 0, 0, -20 };
 
 
 
@@ -630,7 +630,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	int timer = 0;
 	int SceneNum = 0;
 	bool isLoad = false;
-	bool yMove = true;
 	int loadTimer = 20;
 	enum Scene
 	{
@@ -713,70 +712,147 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			{
 				if (key[DIK_UP])
 				{
-					vel = 3;
-					yMove = false;
+  					vel = 3;
 				}
 				else if (key[DIK_DOWN])
 				{
+
 					vel = 2;
-					yMove = false;
 				}
 				if (key[DIK_LEFT])
 				{
 					vel = 1;
-					yMove = true;
 				}
 				else if (key[DIK_RIGHT])
 				{
 					vel = 0;
-					yMove = true;
 				}
 			}
 
-			if (isRight == true)
+			if (isRight == true && object[27].rotation.y > -180)
 			{
-				object[0].position.x += 0.5f;
-				object[0].rotation.y -= 2.25f;
+				object[27].position.x += 0.5f;
+				object[28].position.x += 0.5f;
+				object[29].position.x += 0.5f;
+				object[30].position.x += 0.5f;
+				object[31].position.x += 0.5f;
+				object[32].position.x += 0.5f;
+				object[27].rotation.y -= 2.25f;
+				object[28].rotation.y -= 2.25f;
+				object[29].rotation.y -= 2.25f;
+				object[30].rotation.y -= 2.25f;
+				object[31].rotation.y -= 2.25f;
+				object[32].rotation.y -= 2.25f;
 				timer++;
 			}
-			if (isLeft == true)
+			else if (isRight == true && object[27].rotation.y <= -180)
 			{
-				object[0].position.x -= 0.5f;
-				object[0].rotation.y += 2.25f;
+				isRight = false;
+				isTurn = true;
+			}
+			if (isLeft == true && object[27].rotation.y < 180)
+			{
+				object[27].position.x -= 0.5f;
+				object[28].position.x -= 0.5f;
+				object[29].position.x -= 0.5f;
+				object[30].position.x -= 0.5f;
+				object[31].position.x -= 0.5f;
+				object[32].position.x -= 0.5f;
+				object[27].rotation.y += 2.25f;
+				object[28].rotation.y += 2.25f;
+				object[29].rotation.y += 2.25f;
+				object[30].rotation.y += 2.25f;
+				object[31].rotation.y += 2.25f;
+				object[32].rotation.y += 2.25f;
 				timer++;
+			}
+			else if (isLeft == true && object[27].rotation.y >= 180)
+			{
+				isLeft = false;
+				isTurn = true;
 			}
 
-			if (isDown == true)
+			if (isDown == true && object[27].position.y > -40)
             {
                 //Y軸の角度によって回転が異なるabsは絶対値
-                if (abs(object[0].rotation.y) == 0.0f)
+                if (abs(object[27].rotation.y) == 0.0f)
                 {
-                    object[0].rotation.x -= 2.25f;
-					object[0].position.y -= 0.5f;
+                    object[27].rotation.x -= 2.25f;
+                    object[28].rotation.x -= 2.25f;
+                    object[29].rotation.x -= 2.25f;
+                    object[30].rotation.x -= 2.25f;
+                    object[31].rotation.x -= 2.25f;
+                    object[32].rotation.x -= 2.25f;
+					object[27].position.y -= 0.5f;
+					object[28].position.y -= 0.5f;
+					object[29].position.y -= 0.5f;
+					object[30].position.y -= 0.5f;
+					object[31].position.y -= 0.5f;
+					object[32].position.y -= 0.5f;
                 }
 
-                if (abs(object[0].rotation.y) == 180.0f)
+                if (abs(object[27].rotation.y) == 180.0f)
                 {
-                    object[0].rotation.x += 2.25f;
-					object[0].position.y -= 0.5f;
+                    object[27].rotation.x += 2.25f;
+                    object[28].rotation.x += 2.25f;
+                    object[29].rotation.x += 2.25f;
+                    object[30].rotation.x += 2.25f;
+                    object[31].rotation.x += 2.25f;
+                    object[32].rotation.x += 2.25f;
+					object[27].position.y -= 0.5f;
+					object[28].position.y -= 0.5f;
+					object[29].position.y -= 0.5f;
+					object[30].position.y -= 0.5f;
+					object[31].position.y -= 0.5f;
+					object[32].position.y -= 0.5f;
                 }
                 timer++;
             }
-            if (isUp == true)
+			else if (isDown == true && object[27].position.y <= 40)
+			{
+				isDown = false;
+				isTurn = true;
+			}
+            if (isUp == true && object[27].position.y < 40)
             {
-                if (abs(object[0].rotation.y) == 0.0f)
+                if (abs(object[27].rotation.y) == 0.0f)
                 {
-                    object[0].rotation.x += 2.25f;
-					object[0].position.y += 0.5f;
+                    object[27].rotation.x += 2.25f;
+                    object[28].rotation.x += 2.25f;
+                    object[29].rotation.x += 2.25f;
+                    object[30].rotation.x += 2.25f;
+                    object[31].rotation.x += 2.25f;
+                    object[32].rotation.x += 2.25f;
+					object[27].position.y += 0.5f;
+					object[28].position.y += 0.5f;
+					object[29].position.y += 0.5f;
+					object[30].position.y += 0.5f;
+					object[31].position.y += 0.5f;
+					object[32].position.y += 0.5f;
                 }
 
-                if (abs(object[0].rotation.y) == 180.0f)
+                if (abs(object[27].rotation.y) == 180.0f)
                 {
-                    object[0].rotation.x -= 2.25f;
-					object[0].position.y += 0.5f;
+                    object[27].rotation.x -= 2.25f;
+                    object[28].rotation.x -= 2.25f;
+                    object[29].rotation.x -= 2.25f;
+                    object[30].rotation.x -= 2.25f;
+                    object[31].rotation.x -= 2.25f;
+                    object[32].rotation.x -= 2.25f;
+					object[27].position.y += 0.5f;
+					object[28].position.y += 0.5f;
+					object[29].position.y += 0.5f;
+					object[30].position.y += 0.5f;
+					object[31].position.y += 0.5f;
+					object[32].position.y += 0.5f;
                 }
                 timer++;
             }
+			else if (isUp == true && object[27].position.y >= -40)
+			{
+				isUp = false;
+				isTurn = true;
+			}
 
 			if (timer > 39)
 			{
@@ -792,10 +868,10 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 				isLeft = false;
 				isUp = false;
 				isDown = false;
-				timer = 0;
 				isTurn = true;
 				maina = false;
 				plus = false;
+				timer = 0;
 			}
 
 			if (abs(object[0].rotation.y) == 360.0f)
